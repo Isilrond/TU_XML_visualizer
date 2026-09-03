@@ -39,10 +39,10 @@ TU_XML_visualizer/
 ## Usage
 
 1. Open PowerShell 7+ and navigate to the project directory:
-   cd "C:\Path\To\TU_XML_visualizer"
+   `cd "C:\Path\To\TU_XML_visualizer"`
 
 2. Execute the script:
-   .\visualize.ps1
+   `.\visualize.ps1`
 
 3. Once complete, view the rendered report in your browser by opening `Changelog.html` or inspect the newly generated cropped `.jpg` images directly in the root directory.
 
