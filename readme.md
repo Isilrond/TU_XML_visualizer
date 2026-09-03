@@ -21,6 +21,7 @@ It automatically fetches the latest card definitions, compares them against arch
 
 ## Folder Structure
 
+```text
 TU_XML_visualizer/
 ├── images/          # Local card illustration assets
 ├── XML-new/         # Store location for the latest downloaded XMLs
