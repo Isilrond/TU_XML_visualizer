@@ -21,13 +21,12 @@ It automatically fetches the latest card definitions, compares them against arch
 
 ## Folder Structure
 
-```text
 TU_XML_visualizer/
-├── images/          # Local card illustration assets
-├── XML-new/         # Store location for the latest downloaded XMLs
-├── XML-old/         # Archived XML files from previous runs
-├── visualize.ps1    # Main PowerShell script
-└── Changelog.html   # Generated HTML changelog report
+|-- images/          # Local card illustration assets
+|-- XML-new/         # Store location for the latest downloaded XMLs
+|-- XML-old/         # Archived XML files from previous runs
+|-- visualize.ps1    # Main PowerShell script
+`-- Changelog.html   # Generated HTML changelog report
 
 ## Configuration
 
@@ -38,10 +37,10 @@ TU_XML_visualizer/
 ## Usage
 
 1. Open PowerShell 7+ and navigate to the project directory:
-   `cd "C:\Path\To\TU_XML_visualizer"`
+   cd "C:\Path\To\TU_XML_visualizer"
 
 2. Execute the script:
-   `.\visualize.ps1`
+   .\visualize.ps1
 
 3. Once complete, view the rendered report in your browser by opening `Changelog.html` or inspect the newly generated cropped `.jpg` images directly in the root directory.
 
