@@ -17,14 +17,33 @@ It automatically fetches the latest card definitions, compares them against arch
 * **Operating System**: Windows 10 / 11 / Linux / macOS
 * **PowerShell**: Version 7.0 or higher (PowerShell Core recommended)
 * **Browser**: Microsoft Edge or Google Chrome (required for headless JPG screenshot generation)
-* **Local Images**: Local card artwork images stored inside the `images/` folder (PNG or JPG formats)
+* **Local Images**: Local card artwork images stored inside the `images/` folder (PNG or JPG formats).
 
 ## Folder Structure
 
-```text
 TU_XML_visualizer/
 ├── images/          # Local card illustration assets
 ├── XML-new/         # Store location for the latest downloaded XMLs
 ├── XML-old/         # Archived XML files from previous runs
 ├── visualize.ps1    # Main PowerShell script
 └── Changelog.html   # Generated HTML changelog report
+
+## Configuration
+
+> **Important**: Before running the script for the first time, open `visualize.ps1` and update the `$BaseDir` variable at the top of the file to match your local project path:
+>
+> `$BaseDir = "C:\Users\Bob\Desktop\changeme"`
+
+## Usage
+
+1. Open PowerShell 7+ and navigate to the project directory:
+   `cd "C:\Path\To\TU_XML_visualizer"`
+
+2. Execute the script:
+   `.\visualize.ps1`
+
+3. Once complete, view the rendered report in your browser by opening `Changelog.html` or inspect the newly generated cropped `.jpg` images directly in the root directory.
+
+## License
+
+Distributed under the MIT License. Feel free to modify and adapt for personal use.
