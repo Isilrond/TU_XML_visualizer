@@ -1,18 +1,12 @@
 # =========================================================================
 # DIRECTORY DEFINITIONS
 # =========================================================================
-
-# change path in BaseDir
-$BaseDir      = "C:\Users\Bob\Desktop\changeme"
-# keep everything else
+$BaseDir      = "C:\Users\David\Desktop\XML Difference"
 $OldDir       = Join-Path $BaseDir "XML-old"
 $NewDir       = Join-Path $BaseDir "XML-new"
 $PicturesDir  = Join-Path $BaseDir "images"
 $HtmlOutput   = Join-Path $BaseDir "Changelog.html"
 # =========================================================================
-
-# Load System.Drawing assembly for image manipulation
-Add-Type -AssemblyName System.Drawing
 
 if (-not (Test-Path $OldDir)) { New-Item -ItemType Directory -Path $OldDir -Force | Out-Null }
 if (-not (Test-Path $NewDir)) { New-Item -ItemType Directory -Path $NewDir -Force | Out-Null }
@@ -25,54 +19,6 @@ $script:GlobalRarityMap = @{
     "4" = "Legendary"
     "5" = "Vindicator"
     "6" = "Mythic"
-}
-
-# -------------------------------------------------------------------------
-# HELPER FUNCTION: CROP IMAGE
-# -------------------------------------------------------------------------
-function Crop-Image ([string]$imagePath) {
-    if (-not (Test-Path $imagePath)) { return }
-    
-    $bmp = [System.Drawing.Bitmap]::FromFile($imagePath)
-    $bgR = 9; $bgG = 10; $bgB = 15; $tolerance = 5
-
-    $minX = $bmp.Width; $minY = $bmp.Height; $maxX = 0; $maxY = 0
-    $foundPixel = $false
-
-    # Scan pixel grid for non-background colors
-    for ($y = 0; $y -lt $bmp.Height; $y += 2) {
-        for ($x = 0; $x -lt $bmp.Width; $x += 2) {
-            $p = $bmp.GetPixel($x, $y)
-            $diffR = [Math]::Abs([int]$p.R - $bgR)
-            $diffG = [Math]::Abs([int]$p.G - $bgG)
-            $diffB = [Math]::Abs([int]$p.B - $bgB)
-
-            if ($diffR -gt $tolerance -or $diffG -gt $tolerance -or $diffB -gt $tolerance) {
-                if ($x -lt $minX) { $minX = $x }
-                if ($x -gt $maxX) { $maxX = $x }
-                if ($y -lt $minY) { $minY = $y }
-                if ($y -gt $maxY) { $maxY = $y }
-                $foundPixel = $true
-            }
-        }
-    }
-
-    if ($foundPixel -and ($maxX -gt $minX) -and ($maxY -gt $minY)) {
-        $padding = 10
-        $cropX = [Math]::Max(0, $minX - $padding)
-        $cropY = [Math]::Max(0, $minY - $padding)
-        $cropW = [Math]::Min($bmp.Width - $cropX, ($maxX - $minX) + ($padding * 2))
-        $cropH = [Math]::Min($bmp.Height - $cropY, ($maxY - $minY) + ($padding * 2))
-
-        $rect = [System.Drawing.Rectangle]::new($cropX, $cropY, $cropW, $cropH)
-        $croppedBmp = $bmp.Clone($rect, $bmp.PixelFormat)
-        $bmp.Dispose() # Release file lock promptly
-
-        $croppedBmp.Save($imagePath, [System.Drawing.Imaging.ImageFormat]::Jpeg)
-        $croppedBmp.Dispose()
-    } else {
-        $bmp.Dispose()
-    }
 }
 
 # -------------------------------------------------------------------------
@@ -138,7 +84,7 @@ if (Test-Path $skillsSetPath) {
         }
     }
 } else {
-    Write-Warning "skills_set.xml not found! Falling back to raw IDs."
+    Write-Warning "skills_set.xml not found! Fallback to raw IDs."
 }
 
 function Get-PicturePath ([string]$picName, [string]$baseDir) {
@@ -759,7 +705,7 @@ foreach ($item in $changesList) {
 $htmlFooter = "</body></html>"
 
 Set-Content -Path $HtmlOutput -Value ($htmlHeader + $htmlBody + $htmlFooter) -Encoding UTF8
-Write-Host "HTML report successfully saved to '$HtmlOutput'." -ForegroundColor Green
+Write-Host "HTML Report saved to '$HtmlOutput'." -ForegroundColor Green
 
 # =========================================================================
 # STEP 4: GENERATE OVERALL JPG AND INDIVIDUAL JPGs VIA HEADLESS BROWSER
@@ -771,10 +717,10 @@ $browserPath = if (Test-Path $edgePath) { $edgePath } elseif (Test-Path $chromeP
 
 if ($browserPath) {
     # ---------------------------------------------------------------------
-    # 4A: GENERATE OVERALL IMAGE OF ALL CARDS
+    # 4A: GESAMTBILD ALLER KARTEN GENERIEREN
     # ---------------------------------------------------------------------
     $overallJpgOutput = Join-Path $BaseDir "Changelog_All_Cards.jpg"
-    Write-Host "Rendering overall JPG containing ALL cards: '$overallJpgOutput'..." -ForegroundColor Cyan
+    Write-Host "Rendering overall JPG with ALL cards: '$overallJpgOutput'..." -ForegroundColor Cyan
 
     $overallArgs = @(
         "--headless",
@@ -790,13 +736,10 @@ if ($browserPath) {
 
     $process = [System.Diagnostics.Process]::Start($browserPath, ($overallArgs -join " "))
     $process.WaitForExit()
-    
-    # Automatically crop the main composite image to fit content
-    Crop-Image -imagePath $overallJpgOutput
-    Write-Host " Overall JPG successfully generated and cropped!" -ForegroundColor Green
+    Write-Host " Overall JPG generated successfully!" -ForegroundColor Green
 
     # ---------------------------------------------------------------------
-    # 4B: GENERATE & CROP INDIVIDUAL JPG FOR EACH CARD
+    # 4B: JEDE KARTE ALS EINZELNES JPG SPEICHERN
     # ---------------------------------------------------------------------
     Write-Host "Rendering individual JPG images per card..." -ForegroundColor Cyan
     
@@ -857,7 +800,7 @@ if ($browserPath) {
             "--log-level=3",
             "--silent",
             "--force-device-scale-factor=2",
-            "--window-size=1600,800",
+            "--window-size=1600,400",
             "--screenshot=""$cardJpgOutput""",
             """file:///$singleCardHtmlPath"""
         )
@@ -866,14 +809,11 @@ if ($browserPath) {
         $process.WaitForExit()
 
         Remove-Item -Path $singleCardHtmlPath -ErrorAction SilentlyContinue
-
-        # Perform automatic image cropping
-        Crop-Image -imagePath $cardJpgOutput
     }
 
-    Write-Host "All individual JPG images saved and cropped successfully." -ForegroundColor Green
+    Write-Host "All individual JPG images saved successfully." -ForegroundColor Green
 } else {
-    Write-Warning "No compatible browser (Edge or Chrome) found for JPG screenshot rendering."
+    Write-Warning "No compatible Browser (Edge/Chrome) found for JPG screenshot generation."
 }
 
-Write-Host "Execution finalized! Total unit modifications processed: $($changesList.Count)." -ForegroundColor Green
+Write-Host "Process completed! Total unit changes processed: $($changesList.Count)." -ForegroundColor Green
