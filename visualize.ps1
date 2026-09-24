@@ -1,7 +1,9 @@
 # =========================================================================
-# DIRECTORY DEFINITIONS
+# DIRECTORY DEFINITIONS & ASSEMBLY LOADING
 # =========================================================================
-$BaseDir      = "C:\Users\David\Desktop\XML Difference"
+Add-Type -AssemblyName System.Drawing
+
+$BaseDir      = "C:\Users\Bob\Desktop\changeme"
 $OldDir       = Join-Path $BaseDir "XML-old"
 $NewDir       = Join-Path $BaseDir "XML-new"
 $PicturesDir  = Join-Path $BaseDir "images"
@@ -19,6 +21,55 @@ $script:GlobalRarityMap = @{
     "4" = "Legendary"
     "5" = "Vindicator"
     "6" = "Mythic"
+}
+
+# -------------------------------------------------------------------------
+# CROP FUNCTION FOR AUTOMATIC BORDER TRIMMING
+# -------------------------------------------------------------------------
+function Crop-Image ([string]$imagePath) {
+    if (-not (Test-Path $imagePath)) { return }
+    try {
+        $bmp = [System.Drawing.Bitmap]::FromFile($imagePath)
+        $bgColor = $bmp.GetPixel(0, 0)
+        
+        $minX = $bmp.Width
+        $minY = $bmp.Height
+        $maxX = 0
+        $maxY = 0
+
+        for ($y = 0; $y -lt $bmp.Height; $y += 3) {
+            for ($x = 0; $x -lt $bmp.Width; $x += 3) {
+                $pixel = $bmp.GetPixel($x, $y)
+                $diff = [Math]::Abs([int]$pixel.R - [int]$bgColor.R) +
+                        [Math]::Abs([int]$pixel.G - [int]$bgColor.G) +
+                        [Math]::Abs([int]$pixel.B - [int]$bgColor.B)
+                if ($diff -gt 12) {
+                    if ($x -lt $minX) { $minX = $x }
+                    if ($x -gt $maxX) { $maxX = $x }
+                    if ($y -lt $minY) { $minY = $y }
+                    if ($y -gt $maxY) { $maxY = $y }
+                }
+            }
+        }
+
+        if ($maxX -gt $minX -and $maxY -gt $minY) {
+            $padding = 12
+            $cropX = [Math]::Max(0, $minX - $padding)
+            $cropY = [Math]::Max(0, $minY - $padding)
+            $cropW = [Math]::Min($bmp.Width - $cropX, ($maxX - $minX) + ($padding * 2))
+            $cropH = [Math]::Min($bmp.Height - $cropY, ($maxY - $minY) + ($padding * 2))
+
+            $rect = [System.Drawing.Rectangle]::new($cropX, $cropY, $cropW, $cropH)
+            $croppedBmp = $bmp.Clone($rect, $bmp.PixelFormat)
+            $bmp.Dispose()
+            $croppedBmp.Save($imagePath, [System.Drawing.Imaging.ImageFormat]::Jpeg)
+            $croppedBmp.Dispose()
+        } else {
+            $bmp.Dispose()
+        }
+    } catch {
+        Write-Warning "Could not crop image ${imagePath}: $_"
+    }
 }
 
 # -------------------------------------------------------------------------
@@ -534,7 +585,7 @@ $htmlHeader = @"
         padding: 20px; 
         margin: 0;
         display: inline-block;
-        min-width: 1400px;
+        width: fit-content;
     }
     h1 { 
         color: #f39c12; 
@@ -544,6 +595,9 @@ $htmlHeader = @"
         border-bottom: 2px solid #2c3e50; 
         padding-bottom: 12px; 
         margin-bottom: 25px;
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
     }
     .card-wrapper { 
         display: inline-flex; 
@@ -552,6 +606,7 @@ $htmlHeader = @"
         gap: 15px; 
         padding: 10px;
         background: #090a0f;
+        width: fit-content;
     }
     
     .card-container { 
@@ -560,8 +615,8 @@ $htmlHeader = @"
         background: #121824; 
         border: 2px solid #2a364f; 
         border-radius: 10px; 
-        padding: 16px; 
-        width: 760px; 
+        padding: 16px 20px; 
+        width: fit-content;
         box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         box-sizing: border-box;
     }
@@ -578,8 +633,8 @@ $htmlHeader = @"
         background: #0f172a; 
         border: 1px dashed #38bdf8; 
         border-radius: 10px; 
-        padding: 16px; 
-        width: 580px; 
+        padding: 16px 20px; 
+        width: fit-content;
         box-sizing: border-box;
     }
     
@@ -594,9 +649,9 @@ $htmlHeader = @"
         flex-shrink: 0;
     }
     .card-details { flex-grow: 1; }
-    .card-title { font-size: 22px; font-weight: 700; margin-bottom: 2px; color: #ffffff; letter-spacing: 0.5px; }
-    .card-source { font-size: 11px; color: #64748b; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-    .summon-badge { font-size: 11px; color: #38bdf8; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .card-title { font-size: 22px; font-weight: 700; margin-bottom: 2px; color: #ffffff; letter-spacing: 0.5px; white-space: nowrap; }
+    .card-source { font-size: 11px; color: #64748b; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+    .summon-badge { font-size: 11px; color: #38bdf8; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
     
     .badge-new-card {
         display: inline-block;
@@ -610,14 +665,14 @@ $htmlHeader = @"
         letter-spacing: 1px;
     }
 
-    .two-col-table { border-collapse: collapse; width: 100%; margin-top: 4px; }
+    .two-col-table { border-collapse: collapse; margin-top: 4px; }
     .two-col-table td { padding: 3px 0; vertical-align: top; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; }
-    .left-col { width: 38%; color: #94a3b8; white-space: nowrap; }
-    .right-col { width: 62%; padding-left: 10px; white-space: nowrap; }
+    .left-col { color: #94a3b8; white-space: nowrap; padding-right: 25px; vertical-align: top; min-width: 210px; }
+    .right-col { padding-left: 5px; white-space: nowrap; vertical-align: top; }
 
     .old { text-decoration: line-through; color: #64748b; margin-right: 6px; }
     .new { color: #facc15; font-weight: bold; }
-    .skill-val { font-weight: bold; color: #ffffff; white-space: nowrap; }
+    .skill-val { font-weight: bold; color: #ffffff; }
 
     .no-pic { 
         width: 140px; 
@@ -717,7 +772,7 @@ $browserPath = if (Test-Path $edgePath) { $edgePath } elseif (Test-Path $chromeP
 
 if ($browserPath) {
     # ---------------------------------------------------------------------
-    # 4A: GESAMTBILD ALLER KARTEN GENERIEREN
+    # 4A: GENERATE OVERALL JPG OF ALL CARDS
     # ---------------------------------------------------------------------
     $overallJpgOutput = Join-Path $BaseDir "Changelog_All_Cards.jpg"
     Write-Host "Rendering overall JPG with ALL cards: '$overallJpgOutput'..." -ForegroundColor Cyan
@@ -729,17 +784,20 @@ if ($browserPath) {
         "--log-level=3",
         "--silent",
         "--force-device-scale-factor=2",
-        "--window-size=1600,10000",
+        "--window-size=2500,10000",
         "--screenshot=""$overallJpgOutput""",
         """file:///$HtmlOutput"""
     )
 
     $process = [System.Diagnostics.Process]::Start($browserPath, ($overallArgs -join " "))
     $process.WaitForExit()
-    Write-Host " Overall JPG generated successfully!" -ForegroundColor Green
+    
+    # Executing cropping logic
+    Crop-Image -imagePath $overallJpgOutput
+    Write-Host " Overall JPG generated and cropped successfully!" -ForegroundColor Green
 
     # ---------------------------------------------------------------------
-    # 4B: JEDE KARTE ALS EINZELNES JPG SPEICHERN
+    # 4B: SAVE EACH CARD AS AN INDIVIDUAL JPG
     # ---------------------------------------------------------------------
     Write-Host "Rendering individual JPG images per card..." -ForegroundColor Cyan
     
@@ -762,7 +820,7 @@ if ($browserPath) {
 <head>
 <meta charset="UTF-8">
 <style>
-    body { background-color: #090a0f; margin: 0; padding: 10px; display: inline-block; }
+    body { background-color: #090a0f; margin: 0; padding: 10px; display: inline-block; width: fit-content; }
     $($htmlHeader.Substring($htmlHeader.IndexOf("<style>") + 7, $htmlHeader.IndexOf("</style>") - $htmlHeader.IndexOf("<style>") - 7))
 </style>
 </head>
@@ -800,7 +858,7 @@ if ($browserPath) {
             "--log-level=3",
             "--silent",
             "--force-device-scale-factor=2",
-            "--window-size=1600,400",
+            "--window-size=2500,800",
             "--screenshot=""$cardJpgOutput""",
             """file:///$singleCardHtmlPath"""
         )
@@ -808,10 +866,13 @@ if ($browserPath) {
         $process = [System.Diagnostics.Process]::Start($browserPath, ($renderArgs -join " "))
         $process.WaitForExit()
 
+        # Executing cropping logic for single image
+        Crop-Image -imagePath $cardJpgOutput
+
         Remove-Item -Path $singleCardHtmlPath -ErrorAction SilentlyContinue
     }
 
-    Write-Host "All individual JPG images saved successfully." -ForegroundColor Green
+    Write-Host "All individual JPG images saved and cropped successfully." -ForegroundColor Green
 } else {
     Write-Warning "No compatible Browser (Edge/Chrome) found for JPG screenshot generation."
 }
